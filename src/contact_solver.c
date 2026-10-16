@@ -1634,6 +1634,7 @@ void b3SolveContacts_Convex( b3SolverBlock block, b3StepContext* context, bool u
 		int pointCount = b3MaxInt( pointCount1, pointCount2 );
 		B3_VALIDATE( 0 < pointCount && pointCount <= B3_MAX_MANIFOLD_POINTS );
 
+		// BodyState中的数据读出成可SIMD计算的形式
 		b3BodyStateW bA = b3GatherBodies( states, c->indexA );
 		b3BodyStateW bB = b3GatherBodies( states, c->indexB );
 
@@ -1713,6 +1714,9 @@ void b3SolveContacts_Convex( b3SolverBlock block, b3StepContext* context, bool u
 		if ( useBias == false )
 		{
 			// Rolling resistance
+			// 通过计算当前的相对角速度需要多少impulse抵消
+			// 然后用rollingResistance限制impulse的大小
+			// 最后应用impulse来抵消相对角速度
 			if ( b3AllZeroW( c->rollingResistance ) == false )
 			{
 				// flip A/B order to negate
@@ -1747,8 +1751,9 @@ void b3SolveContacts_Convex( b3SolverBlock block, b3StepContext* context, bool u
 			}
 
 			// Central twist friction
+			// 绕接触法线的扭转摩擦
 			{
-				b3FloatW twistSpeed = b3DotW( c->normal, b3SubVW( bB.w, bA.w ) );
+				b3FloatW twistSpeed = b3DotW( c->normal, b3SubVW( bB.w, bA.w ) ); // 计算出绕接触法线的相对角速度
 				b3FloatW maxLambda = b3MulW( c->friction, totalTwistLimit );
 				b3FloatW deltaImpulse = b3NegW( b3MulW( c->twistMass, twistSpeed ) );
 				b3FloatW oldImpulse = c->twistImpulse;
@@ -1816,7 +1821,8 @@ void b3SolveContacts_Convex( b3SolverBlock block, b3StepContext* context, bool u
 				bB.v = b3MulAddSVW( bB.v, c->invMassB, P );
 			}
 		}
-
+		
+		// 把SIMD计算结果写回BodyState中
 		b3ScatterBodies( states, c->indexA, &bA );
 		b3ScatterBodies( states, c->indexB, &bB );
 	}

@@ -4101,3 +4101,16 @@ void b3ValidateContacts( b3World* world )
 }
 
 #endif
+
+//CCX_MOD BEGIN(Implement world pre-integrate callback registration)
+void b3World_SetPreIntegratePositionsCallback( b3WorldId worldId, b3PreIntegratePositionsCallback* callback )
+{
+	b3World* world = b3GetUnlockedWorldFromId( worldId );
+	if ( world == NULL )
+	{
+		return;
+	}
+
+	world->preIntegratePositionsCallback = callback;
+}
+//CCX_MOD END(Implement world pre-integrate callback registration)

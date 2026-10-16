@@ -1160,6 +1160,11 @@ static void b3SolverTask( void* taskContext )
 
 	if ( workerIndex == 0 )
 	{
+		//CCX_MOD BEGIN(Old worker-zero comments no longer apply)
+		// The following original comments describe the removed worker-zero task race and no longer apply:
+		//CCX_MOD END(Old worker-zero comments no longer apply)
+		//CCX_MOD BEGIN(Original worker-zero orchestrator race source)
+		/* Original source retained for reference; not used after worker zero became caller-only.
 		// The orchestrator slot is a race. The calling thread of b3World_Step also enters here
 		// as worker 0, so progress is guaranteed even if the user's task system schedules tasks
 		// out of order, has fewer threads than workerCount, or runs the task synchronously
@@ -1169,12 +1174,18 @@ static void b3SolverTask( void* taskContext )
 		{
 			return;
 		}
-
 		// Main thread synchronizes the workers and does work itself.
 		//
 		// This needs to be a task for the main thread because the user's task system may execute
 		// the tasks serially and this is the first task. This single task is able to fully
 		// complete all work even if all other workers are blocked.
+		*/
+		//CCX_MOD END(Original worker-zero orchestrator race source)
+
+		//CCX_MOD BEGIN(Worker zero is the b3World_Step caller)
+		// Worker zero is not enqueued; the thread calling b3World_Step runs the orchestrator directly.
+		// The original worker-zero race and main-thread-task comments above no longer apply.
+		//CCX_MOD END(Worker zero is the b3World_Step caller)
 
 		// Stages are re-used by loops so that I don't need more stages for large substep counts.
 		// The sync indices grow monotonically for the body/graph/constraint groupings because they share solver blocks.
@@ -1283,6 +1294,20 @@ static void b3SolverTask( void* taskContext )
 
 			// Integrate positions
 			B3_ASSERT( stages[iterationStageIndex].type == b3_stageIntegratePositions );
+			//CCX_MOD BEGIN(Invoke per-body callback before position integration)
+			b3PreIntegratePositionsCallback* callback = context->world->preIntegratePositionsCallback;
+			if ( callback != NULL )
+			{
+				int awakeBodyCount = context->world->solverSets.data[b3_awakeSet].bodyStates.count;
+				for ( int i = 0; i < awakeBodyCount; ++i )
+				{
+					b3BodySim* sim = context->sims + i;
+					b3BodyState* state = context->states + i;
+					callback( b3MakeBodyId( context->world, sim->bodyId ), &state->linearVelocity, &state->angularVelocity,
+							  &state->deltaPosition, &state->deltaRotation, context->h );
+				}
+			}
+			//CCX_MOD END(Invoke per-body callback before position integration)
 			syncBits = ( bodySyncIndex << 16 ) | iterationStageIndex;
 			b3ExecuteMainStage( stages + iterationStageIndex, context, syncBits );
 			iterationStageIndex += 1;
@@ -1812,6 +1837,8 @@ void b3Solve( b3World* world, b3StepContext* stepContext )
 
 		int jointIdCapacity = b3GetIdCapacity( &world->jointIdPool );
 		int contactIdCapacity = b3GetIdCapacity( &world->contactIdPool );
+		//CCX_MOD BEGIN(Original solver worker dispatch source)
+		/*
 		for ( int i = 0; i < workerCount; ++i )
 		{
 			b3TaskContext* taskContext = b3Array_Get( world->taskContexts, i );
@@ -1856,6 +1883,55 @@ void b3Solve( b3World* world, b3StepContext* stepContext )
 				world->activeTaskCount -= 1;
 			}
 		}
+		*/
+		//CCX_MOD END(Original solver worker dispatch source)
+
+		//CCX_MOD BEGIN(New caller-owned worker-zero dispatch)
+		for ( int i = 0; i < workerCount; ++i )
+		{
+			b3TaskContext* taskContext = b3Array_Get( world->taskContexts, i );
+			b3SetBitCountAndClear( &taskContext->jointStateBitSet, jointIdCapacity );
+			b3SetBitCountAndClear( &taskContext->hitEventBitSet, contactIdCapacity );
+			taskContext->hasHitEvents = false;
+
+			workerContext[i].context = stepContext;
+			workerContext[i].workerIndex = i;
+			workerContext[i].userTask = NULL;
+		}
+
+		// This assumes enqueueTaskFcn does not execute worker tasks inline. An inline worker 1 would wait
+		// for a stage while the caller is still enqueueing, so the caller cannot start the orchestrator.
+		// The built-in scheduler only queues and signals tasks; external schedulers must do likewise.
+		// Degeneration: worker zero can no longer begin orchestration while later tasks are being enqueued,
+		// so that overlap with dispatch is lost.
+		// If native code can identify the actual main thread, a lower-loss alternative is to keep enqueuing
+		// worker zero but make non-main worker-zero invocations return before claiming orchestration; the
+		// b3World_Step caller then owns it. This still requires async enqueue for workers greater than zero.
+		for ( int i = 1; i < workerCount && world->taskCount < B3_MAX_TASKS; ++i )
+		{
+			char buffer[16];
+			snprintf( buffer, sizeof( buffer ), "solve[%d]", i );
+			workerContext[i].userTask =
+				world->enqueueTaskFcn( &b3SolverTask, workerContext + i, world->userTaskContext, buffer );
+			world->taskCount += 1;
+			world->activeTaskCount += workerContext[i].userTask == NULL ? 0 : 1;
+		}
+
+		b3WorkerContext callerContext = { stepContext, 0, NULL };
+		b3SolverTask( &callerContext );
+		//CCX_MOD END(New caller-owned worker-zero dispatch)
+
+		// Finish constraint solve
+		//CCX_MOD BEGIN(Finish only dispatched background workers)
+		for ( int i = 1; i < workerCount; ++i )
+		{
+			if ( workerContext[i].userTask != NULL )
+			{
+				world->finishTaskFcn( workerContext[i].userTask, world->userTaskContext );
+				world->activeTaskCount -= 1;
+			}
+		}
+		//CCX_MOD END(Finish only dispatched background workers)
 
 		// Finish island split
 		if ( splitIslandTask != NULL )

@@ -3059,3 +3059,17 @@ typedef struct b3DebugDraw
 B3_API b3DebugDraw b3DefaultDebugDraw( void );
 
 /**@}*/ // debug_draw
+
+//CCX_MOD BEGIN(Add per-body pre-integrate callback type)
+/// Callback invoked for an awake body after constraint solving and before position integration.
+/// The callback may modify the supplied velocities and deltas. It runs on the solver orchestrator thread;
+/// do not modify the world or call Box3D APIs from this callback.
+/// @param linearVelocity the body's linear velocity
+/// @param angularVelocity the body's angular velocity
+/// @param deltaPosition the body's position delta for this time step
+/// @param deltaRotation the body's rotation delta for this time step
+/// @param timeStep the sub-step duration
+/// @ingroup body
+typedef void b3PreIntegratePositionsCallback( b3BodyId bodyId, b3Vec3* linearVelocity, b3Vec3* angularVelocity,
+													  b3Vec3* deltaPosition, b3Quat* deltaRotation, float timeStep );
+//CCX_MOD END(Add per-body pre-integrate callback type)

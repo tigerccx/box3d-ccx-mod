@@ -1749,3 +1749,10 @@ B3_API bool b3Contact_IsValid( b3ContactId id );
 B3_API b3ContactData b3Contact_GetData( b3ContactId contactId );
 
 /**@}*/ // contact
+
+//CCX_MOD BEGIN(Expose world pre-integrate callback registration)
+/// Set a callback invoked for each awake body after constraint solving and before position integration in each sub-step.
+/// Pass NULL to clear the callback.
+/// @warning The callback runs on the solver orchestrator thread and must not call Box3D APIs or modify world structure.
+B3_API void b3World_SetPreIntegratePositionsCallback( b3WorldId worldId, b3PreIntegratePositionsCallback* callback );
+//CCX_MOD END(Expose world pre-integrate callback registration)

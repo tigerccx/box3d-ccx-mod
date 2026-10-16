@@ -286,6 +286,10 @@ typedef struct b3World
 	bool enableContinuous;
 	bool enableSpeculative;
 	bool inUse;
+
+	//CCX_MOD BEGIN(Store world pre-integrate callback)
+	b3PreIntegratePositionsCallback* preIntegratePositionsCallback;
+	//CCX_MOD END(Store world pre-integrate callback)
 } b3World;
 
 b3World* b3GetUnlockedWorldFromId( b3WorldId id );
