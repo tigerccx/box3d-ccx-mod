@@ -3062,14 +3062,16 @@ B3_API b3DebugDraw b3DefaultDebugDraw( void );
 
 //CCX_MOD BEGIN(Add per-body pre-integrate callback type)
 /// Callback invoked for an awake body after constraint solving and before position integration.
-/// The callback may modify the supplied velocities and deltas. It runs on the solver orchestrator thread;
-/// do not modify the world or call Box3D APIs from this callback.
-/// @param linearVelocity the body's linear velocity
-/// @param angularVelocity the body's angular velocity
-/// @param deltaPosition the body's position delta for this time step
-/// @param deltaRotation the body's rotation delta for this time step
+/// Runs on the solver orchestrator thread between synchronized solver stages.
+/// May read the supplied deltas and the callback body's velocity, mass, inertia and transform.
+/// May call b3Body_SetLinearVelocityWithWake, b3Body_SetAngularVelocityWithWake and the
+/// b3Body_ApplyLinearImpulse, b3Body_ApplyLinearImpulseToCenter and b3Body_ApplyAngularImpulse APIs
+/// on that body with wake=false. Do not access other bodies or call other mutating APIs.
+/// Body transforms are the step's stored transforms; they do not yet include the supplied deltas.
+/// @param deltaPosition read-only position change accumulated by preceding sub-steps in this step
+/// @param deltaRotation read-only rotation change accumulated by preceding sub-steps in this step
 /// @param timeStep the sub-step duration
 /// @ingroup body
-typedef void b3PreIntegratePositionsCallback( b3BodyId bodyId, b3Vec3* linearVelocity, b3Vec3* angularVelocity,
-													  b3Vec3* deltaPosition, b3Quat* deltaRotation, float timeStep );
+typedef void b3PreIntegratePositionsCallback( b3BodyId bodyId, const b3Vec3* deltaPosition, const b3Quat* deltaRotation,
+													  float timeStep );
 //CCX_MOD END(Add per-body pre-integrate callback type)

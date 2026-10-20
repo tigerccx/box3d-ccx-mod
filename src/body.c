@@ -1067,11 +1067,23 @@ b3Vec3 b3Body_GetAngularVelocity( b3BodyId bodyId )
 
 void b3Body_SetLinearVelocity( b3BodyId bodyId, b3Vec3 linearVelocity )
 {
+	b3Body_SetLinearVelocityWithWake( bodyId, linearVelocity, true );
+}
+
+void b3Body_SetLinearVelocityWithWake( b3BodyId bodyId, b3Vec3 linearVelocity, bool wake )
+{
 	B3_ASSERT( b3IsValidVec3( linearVelocity ) );
 
 	b3World* world = b3GetWorld( bodyId.world0 );
 
-	B3_REC( world, BodySetLinearVelocity, bodyId, linearVelocity );
+	B3_REC( world, BodySetLinearVelocityWithWake, bodyId, linearVelocity, wake );
+
+	// Waking may relocate solver arrays. During a step callers must use wake=false.
+	if ( wake && world->locked )
+	{
+		B3_ASSERT( world->locked == false );
+		return;
+	}
 
 	b3Body* body = b3GetBodyFullId( world, bodyId );
 
@@ -1080,7 +1092,7 @@ void b3Body_SetLinearVelocity( b3BodyId bodyId, b3Vec3 linearVelocity )
 		return;
 	}
 
-	if ( b3LengthSquared( linearVelocity ) > 0.0f )
+	if ( wake && body->setIndex >= b3_firstSleepingSet && b3LengthSquared( linearVelocity ) > 0.0f )
 	{
 		b3WakeBodyWithLock( world, body );
 	}
@@ -1096,11 +1108,23 @@ void b3Body_SetLinearVelocity( b3BodyId bodyId, b3Vec3 linearVelocity )
 
 void b3Body_SetAngularVelocity( b3BodyId bodyId, b3Vec3 angularVelocity )
 {
+	b3Body_SetAngularVelocityWithWake( bodyId, angularVelocity, true );
+}
+
+void b3Body_SetAngularVelocityWithWake( b3BodyId bodyId, b3Vec3 angularVelocity, bool wake )
+{
 	B3_ASSERT( b3IsValidVec3( angularVelocity ) );
 
 	b3World* world = b3GetWorld( bodyId.world0 );
 
-	B3_REC( world, BodySetAngularVelocity, bodyId, angularVelocity );
+	B3_REC( world, BodySetAngularVelocityWithWake, bodyId, angularVelocity, wake );
+
+	// Waking may relocate solver arrays. During a step callers must use wake=false.
+	if ( wake && world->locked )
+	{
+		B3_ASSERT( world->locked == false );
+		return;
+	}
 
 	b3Body* body = b3GetBodyFullId( world, bodyId );
 
@@ -1115,7 +1139,7 @@ void b3Body_SetAngularVelocity( b3BodyId bodyId, b3Vec3 angularVelocity )
 	w.y = ( body->flags & b3_lockAngularY ) ? 0.0f : angularVelocity.y;
 	w.z = ( body->flags & b3_lockAngularZ ) ? 0.0f : angularVelocity.z;
 
-	if ( b3LengthSquared( w ) != 0.0f )
+	if ( wake && body->setIndex >= b3_firstSleepingSet && b3LengthSquared( w ) != 0.0f )
 	{
 		b3WakeBodyWithLock( world, body );
 	}

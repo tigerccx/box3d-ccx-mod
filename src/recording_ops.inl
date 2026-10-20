@@ -69,6 +69,8 @@ B3_REC_OP( 0x37, BodySetBullet, RET_NONE, ARG( BODYID, body ) ARG( BOOL, flag ) 
 B3_REC_OP( 0x38, BodyEnableContactRecycling, RET_NONE, ARG( BODYID, body ) ARG( BOOL, flag ) )
 B3_REC_OP( 0x39, BodyEnableHitEvents, RET_NONE, ARG( BODYID, body ) ARG( BOOL, flag ) )
 B3_REC_OP( 0x3A, BodyAllowFastRotation, RET_NONE, ARG( BODYID, body ) ARG( BOOL, flag ) )
+B3_REC_OP( 0x3B, BodySetLinearVelocityWithWake, RET_NONE, ARG( BODYID, body ) ARG( VEC3, v ) ARG( BOOL, wake ) )
+B3_REC_OP( 0x3C, BodySetAngularVelocityWithWake, RET_NONE, ARG( BODYID, body ) ARG( VEC3, w ) ARG( BOOL, wake ) )
 
 // Shape create/destroy
 B3_REC_OP( 0x40, CreateSphereShape, RET_SHAPEID, ARG( BODYID, body ) ARG( SHAPEDEF, def ) ARG( SPHERE, sphere ) )

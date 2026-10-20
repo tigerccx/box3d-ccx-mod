@@ -1303,8 +1303,7 @@ static void b3SolverTask( void* taskContext )
 				{
 					b3BodySim* sim = context->sims + i;
 					b3BodyState* state = context->states + i;
-					callback( b3MakeBodyId( context->world, sim->bodyId ), &state->linearVelocity, &state->angularVelocity,
-							  &state->deltaPosition, &state->deltaRotation, context->h );
+					callback( b3MakeBodyId( context->world, sim->bodyId ), &state->deltaPosition, &state->deltaRotation, context->h );
 				}
 			}
 			//CCX_MOD END(Invoke per-body callback before position integration)

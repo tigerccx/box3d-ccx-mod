@@ -842,6 +842,16 @@ static void b3RecDispatch_BodySetTransform( const b3RecArgs_BodySetTransform* a,
 	b3Body_SetTransform( b3RecMakeBodyId( rdr, a->body ), a->position, a->rotation );
 }
 
+static void b3RecDispatch_BodySetLinearVelocityWithWake( const b3RecArgs_BodySetLinearVelocityWithWake* a, b3RecReader* rdr )
+{
+	b3Body_SetLinearVelocityWithWake( b3RecMakeBodyId( rdr, a->body ), a->v, a->wake );
+}
+
+static void b3RecDispatch_BodySetAngularVelocityWithWake( const b3RecArgs_BodySetAngularVelocityWithWake* a, b3RecReader* rdr )
+{
+	b3Body_SetAngularVelocityWithWake( b3RecMakeBodyId( rdr, a->body ), a->w, a->wake );
+}
+
 static void b3RecDispatch_BodySetLinearVelocity( const b3RecArgs_BodySetLinearVelocity* a, b3RecReader* rdr )
 {
 	b3Body_SetLinearVelocity( b3RecMakeBodyId( rdr, a->body ), a->v );

@@ -548,8 +548,18 @@ B3_API b3Vec3 b3Body_GetAngularVelocity( b3BodyId bodyId );
 /// Set the linear velocity of a body at the center of mass. Usually in meters per second.
 B3_API void b3Body_SetLinearVelocity( b3BodyId bodyId, b3Vec3 linearVelocity );
 
+/// Set velocity, optionally waking a sleeping body. With wake=false, only awake bodies are modified.
+/// Static and disabled bodies are ignored. A zero velocity does not wake a sleeping body.
+/// During a pre-integrate callback, only call this on the callback body with wake=false.
+B3_API void b3Body_SetLinearVelocityWithWake( b3BodyId bodyId, b3Vec3 linearVelocity, bool wake );
+
 /// Set the angular velocity of a body in radians per second.
 B3_API void b3Body_SetAngularVelocity( b3BodyId bodyId, b3Vec3 angularVelocity );
+
+/// Set velocity, optionally waking a sleeping body. With wake=false, only awake bodies are modified.
+/// Static and disabled bodies are ignored. A zero velocity does not wake a sleeping body.
+/// During a pre-integrate callback, only call this on the callback body with wake=false.
+B3_API void b3Body_SetAngularVelocityWithWake( b3BodyId bodyId, b3Vec3 angularVelocity, bool wake );
 
 /// Set the velocity to reach the given transform after a given time step.
 /// The result will be close but maybe not exact. This is meant for kinematic bodies.
@@ -1753,6 +1763,6 @@ B3_API b3ContactData b3Contact_GetData( b3ContactId contactId );
 //CCX_MOD BEGIN(Expose world pre-integrate callback registration)
 /// Set a callback invoked for each awake body after constraint solving and before position integration in each sub-step.
 /// Pass NULL to clear the callback.
-/// @warning The callback runs on the solver orchestrator thread and must not call Box3D APIs or modify world structure.
+/// @warning Only the body operations documented by b3PreIntegratePositionsCallback are allowed during this callback.
 B3_API void b3World_SetPreIntegratePositionsCallback( b3WorldId worldId, b3PreIntegratePositionsCallback* callback );
 //CCX_MOD END(Expose world pre-integrate callback registration)
